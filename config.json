@@ -1,0 +1,53 @@
+{
+  "llm_families": [
+    {
+      "name": "qwen2.5",
+      "enabled": true,
+      "test_all_variants": true
+    },
+    {
+      "name": "gemma2",
+      "enabled": true,
+      "test_all_variants": true
+    },
+    {
+      "name": "llama3.2",
+      "enabled": true,
+      "test_all_variants": true
+    },
+    {
+      "name": "llama3.1",
+      "enabled": true,
+      "test_all_variants": true
+    },
+    {
+      "name": "mistral",
+      "enabled": false,
+      "test_all_variants": true
+    },
+    {
+      "name": "codellama",
+      "enabled": false,
+      "test_all_variants": true
+    },
+    {
+      "name": "phi3",
+      "enabled": false,
+      "test_all_variants": true
+    },
+    {
+      "name": "deepseek-coder",
+      "enabled": false,
+      "test_all_variants": true
+    }
+  ],
+  "resource_limits": {
+    "max_ram_usage_percent": 70,
+    "min_free_ram_gb": 4
+  },
+  "test_settings": {
+    "auto_pull_models": true,
+    "skip_if_insufficient_resources": true,
+    "parallel_testing": false
+  }
+}
