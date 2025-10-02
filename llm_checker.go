@@ -217,24 +217,22 @@ func checkColima() *ColimaInfo {
 	listCmd := exec.Command("colima", "list", "--json")
 	listOutput, err := listCmd.Output()
 	if err == nil {
-		// Try to parse as JSON array
-		var instances []map[string]interface{}
-		if err := json.Unmarshal(listOutput, &instances); err == nil && len(instances) > 0 {
-			instance := instances[0]
-
-			// Parse CPU
-			if cpu, ok := instance["cpu"].(float64); ok {
-				info.CPUs = int(cpu)
+		// Try to parse as single JSON object (not array)
+		var instance map[string]interface{}
+		if err := json.Unmarshal(listOutput, &instance); err == nil {
+			// Parse CPUs
+			if cpus, ok := instance["cpus"].(float64); ok {
+				info.CPUs = int(cpus)
 			}
 
-			// Parse Memory
+			// Parse Memory (in bytes, convert to GB)
 			if memory, ok := instance["memory"].(float64); ok {
-				info.Memory = int64(memory)
+				info.Memory = int64(memory) / (1024 * 1024 * 1024)
 			}
 
-			// Parse Disk
+			// Parse Disk (in bytes, convert to GB)
 			if disk, ok := instance["disk"].(float64); ok {
-				info.Disk = int64(disk)
+				info.Disk = int64(disk) / (1024 * 1024 * 1024)
 			}
 
 			// Parse Runtime
