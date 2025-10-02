@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="bb691f05-2d9d-4e35-9e75-d10a927aa393" name="Changes" comment="" />
+    <list default="true" id="bb691f05-2d9d-4e35-9e75-d10a927aa393" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/llm_checker.go" beforeDir="false" afterPath="$PROJECT_DIR$/llm_checker.go" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -14,6 +17,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "revoxz"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/revoxz/LLMtesting.git",
+    "accountId": "8f6df012-0c50-4093-ba3c-85a1187976f7"
+  }
+}]]></component>
   <component name="GoLibraries">
     <option name="indexEntireGoPath" value="true" />
   </component>
@@ -33,6 +48,7 @@
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.go.formatter.settings.were.checked": "true",
     "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "git-widget-placeholder": "main",
     "go.import.settings.migrated": "true",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
@@ -86,7 +102,7 @@
       <option name="presentableId" value="Default" />
       <updated>1759340460602</updated>
       <workItem from="1759340461602" duration="1841000" />
-      <workItem from="1759350216489" duration="4052000" />
+      <workItem from="1759350216489" duration="5199000" />
     </task>
     <servers />
   </component>
@@ -102,7 +118,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/llm_checker.go</url>
-          <line>12</line>
+          <line>13</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>

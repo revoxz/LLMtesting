@@ -297,14 +297,24 @@ Edit the test cases in the Go files to add your own prompts and categories.
 # Default (usually Q4 or Q5)
 ollama pull llama3.1:8b
 
-# Explicitly specify quantization
-ollama pull llama3.1:8b-q4_0      # Q4 quantization
-ollama pull llama3.1:8b-q5_K_M    # Q5 quantization
-ollama pull llama3.1:8b-q8_0      # Q8 quantization
+# Explicitly specify quantization (instruct models for chat)
+ollama pull llama3.1:8b-instruct-q4_0      # Q4 quantization (recommended)
+ollama pull llama3.1:8b-instruct-q5_K_M    # Q5 quantization (better quality)
+ollama pull llama3.1:8b-instruct-q8_0      # Q8 quantization (best quality)
+
+# Base models (for fine-tuning, not chat)
+ollama pull llama3.1:8b-text-q4_0          # Q4 base model
 
 # List available variants
 ollama list
+
+# Check all available tags for a model
+ollama search llama3.1
 ```
+
+**Important:** Most models have two variants:
+- `-instruct` or `-chat`: For instruction following and chatbots (recommended for most users)
+- `-text` or base: For completion/fine-tuning tasks
 
 ### Important Notes
 

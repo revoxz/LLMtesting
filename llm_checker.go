@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"runtime"
@@ -19,13 +20,13 @@ type SystemResources struct {
 }
 
 type ColimaInfo struct {
-	Installed     bool
-	Running       bool
-	CPUs          int
-	Memory        int64 // in GB
-	Disk          int64 // in GB
-	Runtime       string
-	Arch          string
+	Installed bool
+	Running   bool
+	CPUs      int
+	Memory    int64 // in GB
+	Disk      int64 // in GB
+	Runtime   string
+	Arch      string
 }
 
 type LLMModel struct {
@@ -212,63 +213,122 @@ func checkColima() *ColimaInfo {
 	}
 	info.Running = true
 
-	// Get colima configuration
+	// Try to get configuration from JSON output first
 	listCmd := exec.Command("colima", "list", "--json")
 	listOutput, err := listCmd.Output()
 	if err == nil {
-		output := string(listOutput)
+		// Try to parse as JSON array
+		var instances []map[string]interface{}
+		if err := json.Unmarshal(listOutput, &instances); err == nil && len(instances) > 0 {
+			instance := instances[0]
 
-		// Parse CPU
-		if strings.Contains(output, "\"cpu\":") {
-			parts := strings.Split(output, "\"cpu\":")
-			if len(parts) > 1 {
-				cpuPart := strings.Split(parts[1], ",")[0]
-				cpuPart = strings.TrimSpace(cpuPart)
-				if cpu, err := strconv.Atoi(cpuPart); err == nil {
-					info.CPUs = cpu
+			// Parse CPU
+			if cpu, ok := instance["cpu"].(float64); ok {
+				info.CPUs = int(cpu)
+			}
+
+			// Parse Memory
+			if memory, ok := instance["memory"].(float64); ok {
+				info.Memory = int64(memory)
+			}
+
+			// Parse Disk
+			if disk, ok := instance["disk"].(float64); ok {
+				info.Disk = int64(disk)
+			}
+
+			// Parse Runtime
+			if runtimeStr, ok := instance["runtime"].(string); ok {
+				info.Runtime = runtimeStr
+			}
+
+			// Parse Arch
+			if arch, ok := instance["arch"].(string); ok {
+				info.Arch = arch
+			}
+
+			return info
+		}
+	}
+
+	// Fallback: Try using colima status for more details
+	statusCmd2 := exec.Command("colima", "status", "--verbose")
+	statusOutput2, err := statusCmd2.Output()
+	if err == nil {
+		output := string(statusOutput2)
+
+		// Parse CPU from verbose status
+		if strings.Contains(output, "cpu:") {
+			lines := strings.Split(output, "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "cpu:") {
+					parts := strings.Fields(line)
+					if len(parts) >= 2 {
+						if cpu, err := strconv.Atoi(parts[1]); err == nil {
+							info.CPUs = cpu
+						}
+					}
 				}
 			}
 		}
 
-		// Parse Memory
-		if strings.Contains(output, "\"memory\":") {
-			parts := strings.Split(output, "\"memory\":")
-			if len(parts) > 1 {
-				memPart := strings.Split(parts[1], ",")[0]
-				memPart = strings.TrimSpace(memPart)
-				if mem, err := strconv.ParseInt(memPart, 10, 64); err == nil {
-					info.Memory = mem
+		// Parse Memory from verbose status
+		if strings.Contains(output, "memory:") {
+			lines := strings.Split(output, "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "memory:") {
+					parts := strings.Fields(line)
+					if len(parts) >= 2 {
+						memStr := strings.TrimSuffix(parts[1], "GiB")
+						memStr = strings.TrimSuffix(memStr, "GB")
+						if mem, err := strconv.ParseInt(memStr, 10, 64); err == nil {
+							info.Memory = mem
+						}
+					}
 				}
 			}
 		}
 
-		// Parse Disk
-		if strings.Contains(output, "\"disk\":") {
-			parts := strings.Split(output, "\"disk\":")
-			if len(parts) > 1 {
-				diskPart := strings.Split(parts[1], ",")[0]
-				diskPart = strings.TrimSpace(diskPart)
-				if disk, err := strconv.ParseInt(diskPart, 10, 64); err == nil {
-					info.Disk = disk
+		// Parse Disk from verbose status
+		if strings.Contains(output, "disk:") {
+			lines := strings.Split(output, "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "disk:") {
+					parts := strings.Fields(line)
+					if len(parts) >= 2 {
+						diskStr := strings.TrimSuffix(parts[1], "GiB")
+						diskStr = strings.TrimSuffix(diskStr, "GB")
+						if disk, err := strconv.ParseInt(diskStr, 10, 64); err == nil {
+							info.Disk = disk
+						}
+					}
 				}
 			}
 		}
 
-		// Parse Runtime
-		if strings.Contains(output, "\"runtime\":") {
-			parts := strings.Split(output, "\"runtime\":")
-			if len(parts) > 1 {
-				runtimePart := strings.Split(parts[1], "\"")[1]
-				info.Runtime = runtimePart
+		// Parse Runtime from verbose status
+		if strings.Contains(output, "runtime:") {
+			lines := strings.Split(output, "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "runtime:") {
+					parts := strings.Fields(line)
+					if len(parts) >= 2 {
+						info.Runtime = parts[1]
+					}
+				}
 			}
 		}
 
-		// Parse Arch
-		if strings.Contains(output, "\"arch\":") {
-			parts := strings.Split(output, "\"arch\":")
-			if len(parts) > 1 {
-				archPart := strings.Split(parts[1], "\"")[1]
-				info.Arch = archPart
+		// Parse Arch from verbose status
+		if strings.Contains(output, "arch:") {
+			lines := strings.Split(output, "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "arch:") {
+					parts := strings.Fields(line)
+					if len(parts) >= 2 {
+						info.Arch = parts[1]
+					}
+				}
 			}
 		}
 	}
@@ -368,11 +428,75 @@ func displayColimaInfo(colima *ColimaInfo, resources *SystemResources) {
 		fmt.Printf("   colima start --cpu %d --memory %d\n", recommendedCPU, recommendedRAM)
 	}
 
-	// Best practice recommendation
-	fmt.Println("\n💡 Best Practice:")
-	fmt.Println("   For best LLM performance, consider running Ollama directly on macOS")
-	fmt.Println("   instead of in a container (Colima/Docker). Native execution with")
-	fmt.Println("   Metal API provides better performance and uses less overhead.")
+	// Detailed comparison and recommendations
+	fmt.Println("\n=== Bare Metal vs Colima Comparison ===")
+	fmt.Println("\n📊 Performance Comparison:")
+	fmt.Println("┌─────────────────────┬────────────────────┬─────────────────────┐")
+	fmt.Println("│ Aspect              │ Bare Metal (macOS) │ Colima (Container)  │")
+	fmt.Println("├─────────────────────┼────────────────────┼─────────────────────┤")
+	fmt.Println("│ Speed               │ ✓✓✓ Fastest        │ ✓✓ Good             │")
+	fmt.Println("│ RAM Overhead        │ ✓✓✓ Minimal        │ ✓ +2-4GB overhead   │")
+	fmt.Println("│ Metal API           │ ✓✓✓ Full access    │ ✗ Limited/None      │")
+	fmt.Println("│ Setup               │ ✓✓✓ Simple         │ ✓✓ Moderate         │")
+	fmt.Println("│ Isolation           │ ✗ None             │ ✓✓✓ Full isolation  │")
+	fmt.Println("│ Portability         │ ✓ macOS only       │ ✓✓✓ Portable        │")
+	fmt.Println("└─────────────────────┴────────────────────┴─────────────────────┘")
+
+	fmt.Println("\n📝 Recommendations:")
+	fmt.Println("\n✅ Use Bare Metal (Direct macOS) when:")
+	fmt.Println("   • You want maximum performance (especially on Apple Silicon)")
+	fmt.Println("   • You need full Metal API GPU acceleration")
+	fmt.Println("   • You have limited RAM and want minimal overhead")
+	fmt.Println("   • You're doing interactive development/testing")
+	fmt.Println("\n   Setup: brew install ollama && ollama serve")
+
+	fmt.Println("\n✅ Use Colima (Container) when:")
+	fmt.Println("   • You need isolated, reproducible environments")
+	fmt.Println("   • You're deploying to production (Docker compatibility)")
+	fmt.Println("   • You want to easily snapshot/restore configurations")
+	fmt.Println("   • You're running multiple different LLM setups")
+	fmt.Println("\n   Setup: brew install colima && colima start --cpu 6 --memory 12")
+
+	if colima.Running {
+		fmt.Printf("\n💡 Your Current Colima Configuration:")
+		fmt.Printf("\n   colima start --cpu %d --memory %d --disk %d --runtime %s --arch %s\n",
+			colima.CPUs, colima.Memory, colima.Disk, colima.Runtime, colima.Arch)
+	}
+
+	fmt.Println("\n💡 Recommended Colima Configuration for LLMs:")
+	optimalCPU := resources.CPUCores / 2
+	if optimalCPU < 4 {
+		optimalCPU = 4
+	}
+	if optimalCPU > 8 {
+		optimalCPU = 8
+	}
+	optimalRAM := resources.TotalRAM / 2
+	if optimalRAM < 12 {
+		optimalRAM = 12
+	}
+	if optimalRAM > 32 {
+		optimalRAM = 32
+	}
+	fmt.Printf("   colima start --cpu %d --memory %d --disk 100 --runtime docker --vm-type vz --mount-type virtiofs\n", optimalCPU, optimalRAM)
+	fmt.Println("\n   Why these settings?")
+	fmt.Printf("   • CPU: %d cores (50%% of system) - good balance\n", optimalCPU)
+	fmt.Printf("   • RAM: %d GB (50%% of system) - enough for medium/large models\n", optimalRAM)
+	fmt.Println("   • Disk: 100 GB - sufficient for multiple models")
+	fmt.Println("   • VM type vz - better performance on Apple Silicon")
+	fmt.Println("   • Mount virtiofs - faster file sharing")
+
+	fmt.Println("\n🎯 Bottom Line:")
+	if resources.Arch == "arm64" && resources.HasMetalAPI {
+		fmt.Println("   For Apple Silicon: Bare Metal is 20-30% faster due to Metal API")
+	} else {
+		fmt.Println("   For Intel Macs: Bare Metal is 10-15% faster, less overhead")
+	}
+	fmt.Printf("   Current system: %d GB RAM → Bare Metal: ~%d GB for LLMs | Colima (%dGB): ~%d GB for LLMs\n",
+		resources.TotalRAM,
+		int64(float64(resources.TotalRAM)*0.7),
+		colima.Memory,
+		colima.Memory-2)
 }
 
 func checkModelCompatibility(resources *SystemResources, models []LLMModel) {
@@ -496,6 +620,8 @@ func checkModelCompatibility(resources *SystemResources, models []LLMModel) {
 	fmt.Println("• Q8: Near-perfect quality, 50% more RAM")
 	fmt.Println("• Q2: Very small, noticeable quality loss")
 	fmt.Println("\nTo use specific quantization in Ollama:")
-	fmt.Println("  ollama pull llama3.1:8b-q4_0   # Q4 (recommended)")
-	fmt.Println("  ollama pull llama3.1:8b-q5_K_M # Q5 (better quality)")
+	fmt.Println("  ollama pull llama3.1:8b-instruct-q4_0   # Q4 (recommended)")
+	fmt.Println("  ollama pull llama3.1:8b-instruct-q5_K_M # Q5 (better quality)")
+	fmt.Println("  ollama pull llama3.1:8b-instruct-q8_0   # Q8 (best quality)")
+	fmt.Println("\nNote: Most models have '-instruct' variant for chat/instruction following")
 }
